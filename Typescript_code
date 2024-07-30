@@ -1,0 +1,72 @@
+type Timestamp = string; // ISO formatted date string
+type UserSession = {
+  deviceId: string;
+  userId: string;
+  logged_in: Timestamp;
+  logged_out: Timestamp;
+  lastOpenedAt: Timestamp;
+};
+
+type MonthlyUserStats = {
+  [month: string]: {
+    loggedInUsers: Set<string>;
+    activeUsers: Set<string>;
+  };
+};
+
+function getMonthlyUserStats(sessions: UserSession[], year: number): MonthlyUserStats {
+  const monthlyStats: MonthlyUserStats = {};
+
+  for (let month = 0; month < 12; month++) {
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+    monthlyStats[monthKey] = {
+      loggedInUsers: new Set<string>(),
+      activeUsers: new Set<string>(),
+    };
+  }
+
+  sessions.forEach((session) => {
+    const loggedInDate = new Date(session.logged_in);
+    const loggedOutDate = new Date(session.logged_out);
+    const lastOpenedDate = new Date(session.lastOpenedAt);
+
+    for (let month = 0; month < 12; month++) {
+      const startOfMonth = new Date(year, month, 1);
+      const endOfMonth = new Date(year, month + 1, 0);
+
+      // Check if the user was logged in during this month
+      if (loggedInDate <= endOfMonth && loggedOutDate >= startOfMonth) {
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        monthlyStats[monthKey].loggedInUsers.add(session.userId);
+      }
+
+      // Check if the user was active during this month
+      if (
+        lastOpenedDate >= startOfMonth &&
+        lastOpenedDate <= endOfMonth
+      ) {
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        monthlyStats[monthKey].activeUsers.add(session.userId);
+      }
+    }
+  });
+
+  return monthlyStats;
+}
+
+// Example usage:
+const userSessions: UserSession[] = [
+  {
+    deviceId: 'device1',
+    userId: 'user1',
+    logged_in: '2023-01-15T00:00:00Z',
+    logged_out: '2023-03-20T00:00:00Z',
+    lastOpenedAt: '2023-02-10T00:00:00Z',
+  },
+  // Add more sessions here...
+];
+
+const year = 2023;
+const stats = getMonthlyUserStats(userSessions, year);
+
+console.log(stats);
